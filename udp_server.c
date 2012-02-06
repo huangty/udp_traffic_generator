@@ -1,0 +1,76 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<sys/types.h>
+#include<sys/socket.h>
+#include<unistd.h>
+#include<netinet/in.h>
+#include<arpa/inet.h>
+#include<netdb.h>
+#include<errno.h>
+#include<string.h>
+#include<sys/time.h>
+#include"msg_info.h"
+#define MAXLINE 2000
+int last_seq = -1;
+/*
+ *  When Sever Receive a Packet, then use pkt_process to process the packet
+ */
+void pkt_process(int sockfd, struct sockaddr *pcliaddr, socklen_t clilen)
+{
+	  int n;
+	  socklen_t	len;
+	  char buffer[MAXLINE];	  
+	  struct timeval begin;
+	  gettimeofday(&begin, NULL);
+	  double last_recv,begin_d;
+	  double last_sent,second;
+	  double sentDiff,recvDiff,delay;
+	  double sent;
+	  double recv;
+	  int num = 1;
+	  MSG_INFO *msg;
+
+	  for (;;num++) {
+		  len = clilen;
+		  memset(&buffer, '\0' , sizeof(buffer));
+		  /*Packet Content are put in Buffer*/
+	      n = recvfrom(sockfd, buffer, sizeof(MSG_INFO), 0, pcliaddr, &len);
+		  msg = (MSG_INFO*) buffer;
+		  int seqnum = msg->seqnumber;
+		  if(last_seq == -1){
+		  	last_seq = seqnum;
+		  }else{
+		  	if( (seqnum - last_seq) > 1){
+				printf("Received:%d, last seen:%d, gap:%d", seqnum, last_seq, seqnum-last_seq);
+			}
+			last_seq = seqnum;
+		  }
+		  int payload_size = msg->payload_size;
+		  n = recvfrom(sockfd, buffer, payload_size, 0, pcliaddr, &len);
+		  printf("pkt #%d: echo back packet with seqnumber %d\n",num,seqnum);
+		  /*echo back to sender*/
+		  MSG_INFO ack;
+		  struct timeval tim;
+		  gettimeofday(&tim, NULL);
+		  double time_stamp=tim.tv_sec+(tim.tv_usec/1000000.0);
+		  ack.seqnumber = seqnum;
+		  ack.time_stamp = time_stamp;
+		  sendto(sockfd, (char *)&ack , sizeof(MSG_INFO) , 0, pcliaddr, len);
+	  }
+}
+
+int main(int argc, char **argv){
+  int sockfd;
+  struct sockaddr_in servaddr, cliaddr;
+  sockfd = socket(AF_INET, SOCK_DGRAM,0);
+  bzero(&servaddr, sizeof(servaddr));
+
+  servaddr.sin_family = AF_INET;
+  servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+  servaddr.sin_port = htons(9877);
+  bind(sockfd, (struct sockaddr *) &servaddr,sizeof(servaddr));
+
+  pkt_process(sockfd, (struct sockaddr *)&cliaddr,sizeof(cliaddr));
+  return 0;
+}
+
