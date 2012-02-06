@@ -34,7 +34,7 @@ void pkt_process(int sockfd, struct sockaddr *pcliaddr, socklen_t clilen)
 	      n = recvfrom(sockfd, buffer, MAXPAYLOAD, 0, pcliaddr, &len);
 		  msg = (MSG_INFO*) buffer;
 		  unsigned long long seqnum = msg->seqnumber;
-		  printf("Receive pkt #%llu with size%d\n", seqnum, n);
+		  printf("Receive pkt %llu with size%d\n", seqnum, n);
 		  /*if(last_seq == 0){
 		  	last_seq = seqnum;
 		  }else{
