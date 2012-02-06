@@ -93,7 +93,7 @@ void send_packet(void* param)
 		 msg.time_stamp = time_stamp;
 		 msg.payload_size = MAXPAYLOAD;
 		 
-		 printf("send out packet %d\n",seqnumber);
+		 printf("send out packet %lld\n",seqnumber);
 		 memcpy(buffer, (char *)&msg, sizeof(buffer));
 		 sendto(sockfd, buffer, MAXPAYLOAD+sizeof(MSG_INFO),0, pservaddr, servlen);
 
