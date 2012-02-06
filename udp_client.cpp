@@ -70,7 +70,7 @@ void send_packet(void* param)
 
 	  char buffer[MAXPAYLOAD];
 	  struct timeval tim;
-	  long long seqnumber = 0;	  
+	  unsigned long long int seqnumber = 0;	  
 
   	  /*Create Thread to process the ack*/
 	  FUNC_ARG* f = new FUNC_ARG(sockfd);
@@ -93,7 +93,7 @@ void send_packet(void* param)
 		 msg.time_stamp = time_stamp;
 		 msg.payload_size = MAXPAYLOAD;
 		 
-		 printf("send out packet %lld\n",seqnumber);
+		 printf("send out packet %llu\n",seqnumber);
 		 memcpy(buffer, (char *)&msg, sizeof(buffer));
 		 sendto(sockfd, buffer, MAXPAYLOAD+sizeof(MSG_INFO),0, pservaddr, servlen);
 

@@ -11,7 +11,7 @@
 #include<sys/time.h>
 #include"msg_info.h"
 #define MAXLINE 2000
-int last_seq = -1;
+unsigned long long last_seq = 0;
 /*
  *  When Sever Receive a Packet, then use pkt_process to process the packet
  */
@@ -22,12 +22,8 @@ void pkt_process(int sockfd, struct sockaddr *pcliaddr, socklen_t clilen)
 	  char buffer[MAXLINE];	  
 	  struct timeval begin;
 	  gettimeofday(&begin, NULL);
-	  double last_recv,begin_d;
-	  double last_sent,second;
-	  double sentDiff,recvDiff,delay;
-	  double sent;
-	  double recv;
-	  int num = 1;
+	  unsigned long long lost_packet = 0;
+	  unsigned long long num = 1;
 	  MSG_INFO *msg;
 
 	  for (;;num++) {
@@ -36,26 +32,28 @@ void pkt_process(int sockfd, struct sockaddr *pcliaddr, socklen_t clilen)
 		  /*Packet Content are put in Buffer*/
 	      n = recvfrom(sockfd, buffer, sizeof(MSG_INFO), 0, pcliaddr, &len);
 		  msg = (MSG_INFO*) buffer;
-		  int seqnum = msg->seqnumber;
-		  if(last_seq == -1){
+		  unsigned long long seqnum = msg->seqnumber;
+		  if(last_seq == 0){
 		  	last_seq = seqnum;
 		  }else{
 		  	if( (seqnum - last_seq) > 1){
-				printf("Received:%d, last seen:%d, gap:%d", seqnum, last_seq, seqnum-last_seq);
+				printf("Received:%llu, last seen:%llu, gap:%llu", seqnum, last_seq, seqnum-last_seq);
+				lost_packet += (seqnum-last_seq)-1;
+				printf("Loss rate so far: %f", lost_packet / (float) num);
 			}
 			last_seq = seqnum;
 		  }
 		  int payload_size = msg->payload_size;
 		  n = recvfrom(sockfd, buffer, payload_size, 0, pcliaddr, &len);
-		  printf("pkt #%d: echo back packet with seqnumber %d\n",num,seqnum);
 		  /*echo back to sender*/
-		  MSG_INFO ack;
+		  /*MSG_INFO ack;
+		  printf("\npkt #%d: echo back packet with seqnumber %d\n",num,seqnum);
 		  struct timeval tim;
 		  gettimeofday(&tim, NULL);
 		  double time_stamp=tim.tv_sec+(tim.tv_usec/1000000.0);
 		  ack.seqnumber = seqnum;
 		  ack.time_stamp = time_stamp;
-		  sendto(sockfd, (char *)&ack , sizeof(MSG_INFO) , 0, pcliaddr, len);
+		  sendto(sockfd, (char *)&ack , sizeof(MSG_INFO) , 0, pcliaddr, len);*/
 	  }
 }
 
