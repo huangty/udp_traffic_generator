@@ -11,6 +11,7 @@
 #include<sys/time.h>
 #include"msg_info.h"
 #define MAXLINE 2000
+#define MAXPAYLOAD  1458
 unsigned long long last_seq = 0;
 /*
  *  When Sever Receive a Packet, then use pkt_process to process the packet
@@ -30,11 +31,11 @@ void pkt_process(int sockfd, struct sockaddr *pcliaddr, socklen_t clilen)
 		  len = clilen;
 		  memset(&buffer, '\0' , sizeof(buffer));
 		  /*Packet Content are put in Buffer*/
-	      n = recvfrom(sockfd, buffer, sizeof(MSG_INFO), 0, pcliaddr, &len);
+	      n = recvfrom(sockfd, buffer, MAXPAYLOAD, 0, pcliaddr, &len);
 		  msg = (MSG_INFO*) buffer;
 		  unsigned long long seqnum = msg->seqnumber;
-		  printf("Receive pkt #%llu\n", seqnum);
-		  if(last_seq == 0){
+		  printf("Receive pkt #%llu with size%d\n", seqnum, n);
+		  /*if(last_seq == 0){
 		  	last_seq = seqnum;
 		  }else{
 		  	if( (seqnum - last_seq) > 1){
@@ -43,9 +44,7 @@ void pkt_process(int sockfd, struct sockaddr *pcliaddr, socklen_t clilen)
 				printf("Loss rate so far: %f\n", lost_packet / (float) num);
 			}
 			last_seq = seqnum;
-		  }
-		  int payload_size = msg->payload_size;
-		  n = recvfrom(sockfd, buffer, payload_size, 0, pcliaddr, &len);
+		  }*/
 		  /*echo back to sender*/
 		  /*MSG_INFO ack;
 		  printf("Receive pkt #%d: echo back packet with seqnumber %d\n",num,seqnum);
