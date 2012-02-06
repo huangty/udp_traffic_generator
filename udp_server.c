@@ -33,13 +33,14 @@ void pkt_process(int sockfd, struct sockaddr *pcliaddr, socklen_t clilen)
 	      n = recvfrom(sockfd, buffer, sizeof(MSG_INFO), 0, pcliaddr, &len);
 		  msg = (MSG_INFO*) buffer;
 		  unsigned long long seqnum = msg->seqnumber;
+		  printf("Receive pkt #%llu\n", seqnum);
 		  if(last_seq == 0){
 		  	last_seq = seqnum;
 		  }else{
 		  	if( (seqnum - last_seq) > 1){
-				printf("Received:%llu, last seen:%llu, gap:%llu", seqnum, last_seq, seqnum-last_seq);
+				printf("Received:%llu, last seen:%llu, gap:%llu\n", seqnum, last_seq, seqnum-last_seq);
 				lost_packet += (seqnum-last_seq)-1;
-				printf("Loss rate so far: %f", lost_packet / (float) num);
+				printf("Loss rate so far: %f\n", lost_packet / (float) num);
 			}
 			last_seq = seqnum;
 		  }
@@ -47,7 +48,7 @@ void pkt_process(int sockfd, struct sockaddr *pcliaddr, socklen_t clilen)
 		  n = recvfrom(sockfd, buffer, payload_size, 0, pcliaddr, &len);
 		  /*echo back to sender*/
 		  /*MSG_INFO ack;
-		  printf("\npkt #%d: echo back packet with seqnumber %d\n",num,seqnum);
+		  printf("Receive pkt #%d: echo back packet with seqnumber %d\n",num,seqnum);
 		  struct timeval tim;
 		  gettimeofday(&tim, NULL);
 		  double time_stamp=tim.tv_sec+(tim.tv_usec/1000000.0);
