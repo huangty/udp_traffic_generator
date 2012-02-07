@@ -18,7 +18,7 @@
 using namespace std;
 
 #define MAXPAYLOAD  1458 //1500 - 14 - 20 - 8 = 1458
-int delay = 400;
+float delay = 1; //in ms, 1;
 MyThread recvAckThread;
 MyThread sThread;
 /*class for arguments used in thread function*/
