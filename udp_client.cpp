@@ -17,8 +17,8 @@
 #include "msg_info.h"
 using namespace std;
 
-#define MAXPAYLOAD  1466 //1500 - 14 - 20 = 1466
-int delay = 40;
+#define MAXPAYLOAD  1458 //1500 - 14 - 20 - 8 = 1458
+int delay = 400;
 MyThread recvAckThread;
 MyThread sThread;
 /*class for arguments used in thread function*/
@@ -52,7 +52,7 @@ void process_ack(void* param){
   	memset(&buffer, '\0' , sizeof(buffer));
 	n = recvfrom(sockfd, buffer, sizeof(MSG_INFO), 0, NULL, NULL);
 	msg = (MSG_INFO*) buffer;
-	printf("\nack: %d %lf\n",msg->seqnumber, msg->time_stamp);
+	printf("\nack: %llu %lf\n",msg->seqnumber, msg->time_stamp);
   }
 }
 
@@ -91,11 +91,11 @@ void send_packet(void* param)
 		 MSG_INFO msg;
 		 msg.seqnumber = seqnumber;
 		 msg.time_stamp = time_stamp;
-		 msg.payload_size = MAXPAYLOAD;
+		 msg.payload_size = MAXPAYLOAD - sizeof(MSG_INFO);
 		 
 		 printf("send out packet %llu\n",seqnumber);
-		 memcpy(buffer, (char *)&msg, sizeof(buffer));
-		 sendto(sockfd, buffer, MAXPAYLOAD+sizeof(MSG_INFO),0, pservaddr, servlen);
+		 memcpy(buffer, (char *)&msg, sizeof(MSG_INFO));
+		 sendto(sockfd, buffer, MAXPAYLOAD,0, pservaddr, servlen);
 
 		 time_prev = time_stamp;
 		 double space = delay; //switch to second, default sleep 40ms
