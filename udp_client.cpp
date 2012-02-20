@@ -18,7 +18,7 @@
 using namespace std;
 
 #define MAXPAYLOAD  1458 //1500 - 14 - 20 - 8 = 1458
-float delay = 1; //in ms, 1;
+float delay = 4; //in ms, 1;
 MyThread recvAckThread;
 MyThread sThread;
 /*class for arguments used in thread function*/
@@ -98,7 +98,7 @@ void send_packet(void* param)
 		 sendto(sockfd, buffer, MAXPAYLOAD,0, pservaddr, servlen);
 
 		 time_prev = time_stamp;
-		 double space = delay; //switch to second, default sleep 40ms
+		 double space = delay; //switch to second, default sleep 4ms (i.e., 3Mbps)
 		 space/= 1000;
 		 
 		 gettimeofday(&tim, NULL);
