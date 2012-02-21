@@ -115,33 +115,72 @@ void send_packet(void* param)
 
 
 int main(int argc, char **argv){
-  int sockfd;
-  struct sockaddr_in servaddr;
-  struct hostent *host_ptr = 0;
+	int sockfd;
+	struct sockaddr_in servaddr;
+	struct hostent *host_ptr = 0;
 
-  if (argc != 2){
-         printf("usage: udpcli <RemoteIP>");
-	 exit(1);
-  }
+	if (argc != 2){
+	 printf("usage: udpcli <RemoteIP>");
+	exit(1);
+	}
 
-  /* for scheduling */
-  struct sched_param sched_param;
-  sched_param.sched_priority = sched_get_priority_max (SCHED_RR);
-  sched_setscheduler(0,SCHED_RR,& sched_param);
-  /* end for scheduling */
+	/* for scheduling */
+	struct sched_param sched_param;
+	sched_param.sched_priority = sched_get_priority_max (SCHED_RR);
+	sched_setscheduler(0,SCHED_RR,& sched_param);
+	/* end for scheduling */
 
-  bzero(&servaddr, sizeof(servaddr));
-  servaddr.sin_family = AF_INET;
-  servaddr.sin_port = htons(9877);
+	bzero(&servaddr, sizeof(servaddr));
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_port = htons(9877);
 
-  inet_pton(AF_INET, argv[1], &servaddr.sin_addr); 
-  sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+	inet_pton(AF_INET, argv[1], &servaddr.sin_addr); 
+	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
-  printf("Start sendout \n");
-  /*Create Thread to sendout request*/
-  FUNC_ARG* stf = new FUNC_ARG(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr));
-  sThread.createThread((void*)send_packet, (void*)stf);
-  /*End of Create Thread*/
- 
+	printf("Start sendout \n");
+	/*Create Thread to sendout request*/
+	//FUNC_ARG* stf = new FUNC_ARG(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr));
+	//sThread.createThread((void*)send_packet, (void*)stf);
+	/*End of Create Thread*/
+
+	char buffer[MAXPAYLOAD];
+	struct timeval tim;
+	unsigned long long int seqnumber = 0;	  
+
+	double time_prev = 0;
+	while(1){
+	 seqnumber++;
+	 gettimeofday(&tim, NULL);
+	 double time_stamp=tim.tv_sec+(tim.tv_usec/1000000.0);
+	 
+	 if(time_prev != 0){
+		 printf("send_time_diff: %lf ms\n",(time_stamp - time_prev)*1000);
+	 }
+	 memset(&buffer, '\0' , sizeof(buffer));
+	 
+	 MSG_INFO msg;
+	 msg.seqnumber = seqnumber;
+	 msg.time_stamp = time_stamp;
+	 msg.payload_size = MAXPAYLOAD - sizeof(MSG_INFO);
+	 
+	 printf("send out packet %llu\n",seqnumber);
+	 memcpy(buffer, (char *)&msg, sizeof(MSG_INFO));
+	 sendto(sockfd, buffer, MAXPAYLOAD,0, (const struct sockaddr *) &servaddr, sizeof(servaddr));
+
+	 time_prev = time_stamp;
+	 double space = delay; //switch to second, default sleep 4ms (i.e., 3Mbps)
+	 space/= 1000;
+	 
+	 gettimeofday(&tim, NULL);
+	 double time_start=tim.tv_sec+(tim.tv_usec/1000000.0); //in second
+	 double time_now;
+	 while(1){
+	   gettimeofday(&tim, NULL);
+	   time_now = tim.tv_sec+(tim.tv_usec/1000000.0) ;
+	   if( (time_now - time_start) > space)
+		 break;
+	 }
+	}
+
   return 0;
 }
