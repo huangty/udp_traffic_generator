@@ -42,7 +42,7 @@ int main(int argc, char **argv){
 
 	inet_pton(AF_INET, argv[1], &servaddr.sin_addr); 
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
- 	if(fcntl(sd, F_SETFL, O_NONBLOCK) < 0){
+ 	if(fcntl(sockfd, F_SETFL, O_NONBLOCK) < 0){
     	perror("fcntl() error");
     	exit(-1);
   	}
