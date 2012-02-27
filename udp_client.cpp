@@ -18,102 +18,7 @@
 using namespace std;
 
 #define MAXPAYLOAD  1458 //1500 - 14 - 20 - 8 = 1458
-float delay = 4; //in ms, 1;
-MyThread recvAckThread;
-MyThread sThread;
-/*class for arguments used in thread function*/
-class FUNC_ARG{ 
-  public:
-	int sockfd;
-	const struct sockaddr *pservaddr;
-	socklen_t servlen;
-
-	FUNC_ARG(int sf, const struct sockaddr *ps, socklen_t sl){
-	  sockfd = sf;
-	  pservaddr = ps;
-	  servlen = sl;
-	}
-	FUNC_ARG(int sf){
-	  sockfd = sf;
-	}
-	FUNC_ARG(){
-	}
-};
-
-/* Function used in receiving ack thread*/
-void process_ack(void* param){
-  FUNC_ARG *fa=(FUNC_ARG*)param;
-  int sockfd = fa->sockfd;
-  int n;
-  char buffer[MAXPAYLOAD];
-  MSG_INFO *msg;
-  
-  while(1){
-  	memset(&buffer, '\0' , sizeof(buffer));
-	n = recvfrom(sockfd, buffer, sizeof(MSG_INFO), 0, NULL, NULL);
-	msg = (MSG_INFO*) buffer;
-	printf("\nack: %llu %lf\n",msg->seqnumber, msg->time_stamp);
-  }
-}
-
-/* Function used in sending out request
- *                ------------------------------------------
- * Packet Format: |seqnumber | time_stamp | delay | payload |
- *                ------------------------------------------  */
-//void send_packet(int sockfd, const struct sockaddr *pservaddr, socklen_t servlen)
-void send_packet(void* param)
-{
-  	  FUNC_ARG *fa=(FUNC_ARG*)param;
-	  int sockfd = fa->sockfd;
-	  const struct sockaddr *pservaddr = fa->pservaddr;
-	  socklen_t servlen = fa->servlen;
-
-	  char buffer[MAXPAYLOAD];
-	  struct timeval tim;
-	  unsigned long long int seqnumber = 0;	  
-
-  	  /*Create Thread to process the ack*/
-	  FUNC_ARG* f = new FUNC_ARG(sockfd);
-	  recvAckThread.createThread((void*)process_ack, (void*)f);
-	  /*End of Create Thread*/
-	  
-	  double time_prev = 0;
-	  while(1){
-		 seqnumber++;
-		 gettimeofday(&tim, NULL);
-		 double time_stamp=tim.tv_sec+(tim.tv_usec/1000000.0);
-		 
-		 if(time_prev != 0){
-			 printf("send_time_diff: %lf ms\n",(time_stamp - time_prev)*1000);
-		 }
-		 memset(&buffer, '\0' , sizeof(buffer));
-		 
-		 MSG_INFO msg;
-		 msg.seqnumber = seqnumber;
-		 msg.time_stamp = time_stamp;
-		 msg.payload_size = MAXPAYLOAD - sizeof(MSG_INFO);
-		 
-		 printf("send out packet %llu\n",seqnumber);
-		 memcpy(buffer, (char *)&msg, sizeof(MSG_INFO));
-		 sendto(sockfd, buffer, MAXPAYLOAD,0, pservaddr, servlen);
-
-		 time_prev = time_stamp;
-		 double space = delay; //switch to second, default sleep 4ms (i.e., 3Mbps)
-		 space/= 1000;
-		 
-		 gettimeofday(&tim, NULL);
-		 double time_start=tim.tv_sec+(tim.tv_usec/1000000.0); //in second
-		 double time_now;
-		 while(1){
-		   gettimeofday(&tim, NULL);
-		   time_now = tim.tv_sec+(tim.tv_usec/1000000.0) ;
-		   if( (time_now - time_start) > space)
-		     break;
-		 }
-	  }
-}
-
-
+float delay = 0.3; //in ms, 1;
 int main(int argc, char **argv){
 	int sockfd;
 	struct sockaddr_in servaddr;
@@ -138,10 +43,6 @@ int main(int argc, char **argv){
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 
 	printf("Start sendout \n");
-	/*Create Thread to sendout request*/
-	//FUNC_ARG* stf = new FUNC_ARG(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr));
-	//sThread.createThread((void*)send_packet, (void*)stf);
-	/*End of Create Thread*/
 
 	char buffer[MAXPAYLOAD];
 	struct timeval tim;
@@ -163,23 +64,25 @@ int main(int argc, char **argv){
 	 msg.time_stamp = time_stamp;
 	 msg.payload_size = MAXPAYLOAD - sizeof(MSG_INFO);
 	 
-	 printf("send out packet %llu\n",seqnumber);
+	 time_prev = time_stamp;
+	 double time_start=tim.tv_sec+(tim.tv_usec/1000000.0); //in second
 	 memcpy(buffer, (char *)&msg, sizeof(MSG_INFO));
 	 while( sendto(sockfd, buffer, MAXPAYLOAD,0, (const struct sockaddr *) &servaddr, sizeof(servaddr)) == -1){
-	 	if( errno == ENOBUFS){
-			printf("Sendto: Sleep for 1us, packet #%d meets no buffer errors\n", seqnumber);
+	 	int microsecond_sleep = 1;
+		printf("Sendto Error: ");
+		if( errno == ENOBUFS){
+			printf("ENOBUFS => Sleep for %dus, packet #%lld meets no buffer errors\n", microsecond_sleep, seqnumber);
 		}else{
-			printf("Sendto: Other error, sleep for 1us anyway\n");
+			printf("Other Error=> sleep for %dus anyway\n", microsecond_sleep);
 		}
-	 	usleep(1);		
+	 	usleep(microsecond_sleep);		
 	 }
+	 printf("send out packet %llu\n",seqnumber);
 
-	 time_prev = time_stamp;
 	 double space = delay; //switch to second, default sleep 4ms (i.e., 3Mbps)
-	 space/= 1000;
+	 space/= 1000.0;
 	 
 	 gettimeofday(&tim, NULL);
-	 double time_start=tim.tv_sec+(tim.tv_usec/1000000.0); //in second
 	 double time_now;
 	 while(1){
 	   gettimeofday(&tim, NULL);
