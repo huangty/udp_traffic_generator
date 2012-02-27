@@ -19,7 +19,7 @@
 using namespace std;
 
 #define MAXPAYLOAD  1458 //1500 - 14 - 20 - 8 = 1458
-float delay = 0.3; //in ms, 1;
+float delay = 0; //in ms, 1;
 int main(int argc, char **argv){
 	int sockfd;
 	struct sockaddr_in servaddr;
@@ -60,9 +60,9 @@ int main(int argc, char **argv){
 	 gettimeofday(&tim, NULL);
 	 double time_stamp=tim.tv_sec+(tim.tv_usec/1000000.0);
 	 
-	 if(time_prev != 0){
-		 printf("send_time_diff: %lf ms\n",(time_stamp - time_prev)*1000);
-	 }
+// 	 if(time_prev != 0){
+// 		 printf("send_time_diff: %lf ms\n",(time_stamp - time_prev)*1000);
+// 	 }
 	 memset(&buffer, '\0' , sizeof(buffer));
 	 
 	 MSG_INFO msg;
@@ -73,17 +73,28 @@ int main(int argc, char **argv){
 	 time_prev = time_stamp;
 	 double time_start=tim.tv_sec+(tim.tv_usec/1000000.0); //in second
 	 memcpy(buffer, (char *)&msg, sizeof(MSG_INFO));
+	 int retries = 0;
 	 while( sendto(sockfd, buffer, MAXPAYLOAD,0, (const struct sockaddr *) &servaddr, sizeof(servaddr)) == -1){
-	 	int microsecond_sleep = 1;
-		printf("Sendto Error: ");
-		if( errno == ENOBUFS){
-			printf("ENOBUFS => Sleep for %dus, packet #%lld meets no buffer errors\n", microsecond_sleep, seqnumber);
-		}else{
-			printf("Other Error=> sleep for %dus anyway\n", microsecond_sleep);
-		}
-	 	usleep(microsecond_sleep);		
+	   retries++;
+	   if (errno !=  EAGAIN){
+	     printf("Other Error (%d:%s)\n", errno,strerror(errno));
+	     exit(1);
+	   }
 	 }
-	 printf("send out packet %llu\n",seqnumber);
+// 	     int microsecond_sleep = 1;
+// 		printf("Sendto Error: ");
+// 		if( errno == ENOBUFS){
+// 			printf("ENOBUFS => Sleep for %dus, packet #%lld meets no buffer errors\n", microsecond_sleep, seqnumber);
+// 		}else{
+		
+// 		  printf("Other Error (%d:%s)=> sleep for %dus anyway\n", errno,strerror(errno),microsecond_sleep);
+// 		}
+// 	 	// usleep(microsecond_sleep);		
+// 		exit(1);
+//	 }
+	 if( seqnumber % 500 == 0){
+	   printf("send out packet %llu after %d retries\n",seqnumber,retries);
+	 }
 
 	 double space = delay; //switch to second, default sleep 4ms (i.e., 3Mbps)
 	 space/= 1000.0;
@@ -96,6 +107,13 @@ int main(int argc, char **argv){
 	   if( (time_now - time_start) > space)
 		 break;
 	 }
+	 if (seqnumber == 5000){
+	   //system("hercules2.sh");
+	   printf("changing interface!!\n");
+	   system("sudo iwconfig ath3 essid herculesap2 ap 00:80:48:5F:35:9A");
+	   sleep(10);
+	 }
+
 	}
 
   return 0;
