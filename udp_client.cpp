@@ -165,7 +165,12 @@ int main(int argc, char **argv){
 	 
 	 printf("send out packet %llu\n",seqnumber);
 	 memcpy(buffer, (char *)&msg, sizeof(MSG_INFO));
-	 sendto(sockfd, buffer, MAXPAYLOAD,0, (const struct sockaddr *) &servaddr, sizeof(servaddr));
+	 while( sendto(sockfd, buffer, MAXPAYLOAD,0, (const struct sockaddr *) &servaddr, sizeof(servaddr)) == -1){
+	 	if( errno == ENOBUFS){
+			printf("Sleep for 1us, packet #%d meets no buffer errors", seqnumber);
+		}
+	 	usleep(1);		
+	 }
 
 	 time_prev = time_stamp;
 	 double space = delay; //switch to second, default sleep 4ms (i.e., 3Mbps)
