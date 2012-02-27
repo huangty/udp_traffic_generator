@@ -167,7 +167,9 @@ int main(int argc, char **argv){
 	 memcpy(buffer, (char *)&msg, sizeof(MSG_INFO));
 	 while( sendto(sockfd, buffer, MAXPAYLOAD,0, (const struct sockaddr *) &servaddr, sizeof(servaddr)) == -1){
 	 	if( errno == ENOBUFS){
-			printf("Sleep for 1us, packet #%d meets no buffer errors", seqnumber);
+			printf("Sendto: Sleep for 1us, packet #%d meets no buffer errors\n", seqnumber);
+		}else{
+			printf("Sendto: Other error, sleep for 1us anyway\n");
 		}
 	 	usleep(1);		
 	 }
